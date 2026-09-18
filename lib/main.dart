@@ -22,7 +22,6 @@ class SunoDownloaderApp extends StatelessWidget {
           seedColor: const Color(0xFF3A86FF),
           brightness: Brightness.dark,
           surface: const Color(0xFF161B22),
-          background: const Color(0xFF0D1117),
         ),
         scaffoldBackgroundColor: const Color(0xFF0D1117),
         cardTheme: const CardTheme(
