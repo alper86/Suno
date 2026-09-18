@@ -86,13 +86,23 @@ class _HomeScreenState extends State<HomeScreen> {
       final safeName = info.safeFilename;
 
       Directory? baseDir;
-      if (Platform.isAndroid) {
-        baseDir = Directory('/storage/emulated/0/Download');
-        if (!await baseDir.exists()) {
-          baseDir = await getExternalStorageDirectory();
+      try {
+        if (Platform.isAndroid) {
+          final downloadDir = Directory('/storage/emulated/0/Download');
+          if (await downloadDir.exists()) {
+            final testDir = Directory('${downloadDir.path}/Suno_Downloads');
+            await testDir.create(recursive: true);
+            baseDir = downloadDir;
+          }
         }
-      } else {
-        baseDir = await getApplicationDocumentsDirectory();
+      } catch (_) {
+        baseDir = null;
+      }
+
+      if (baseDir == null) {
+        try {
+          baseDir = await getExternalStorageDirectory();
+        } catch (_) {}
       }
 
       baseDir ??= await getApplicationDocumentsDirectory();
