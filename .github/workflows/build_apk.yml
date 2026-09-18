@@ -28,19 +28,64 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Recreate Android Platform Files
+        run: |
+          rm -rf android
+          flutter create . --platforms=android --org com.aykirimisra
+
+      - name: Configure Android Manifest and Permissions
+        run: |
+          python3 - << 'EOF'
+          import re
+
+          manifest_path = "android/app/src/main/AndroidManifest.xml"
+          with open(manifest_path, "r", encoding="utf-8") as f:
+              content = f.read()
+
+          # Set Turkish app label
+          content = re.sub(r'android:label="[^"]*"', 'android:label="Suno İndirici"', content, count=1)
+
+          # Allow cleartext HTTP/HTTPS traffic
+          if 'android:usesCleartextTraffic' not in content:
+              content = content.replace('<application', '<application\n        android:usesCleartextTraffic="true"')
+
+          # Inject permissions and queries for external apps (YouTube, Spotify)
+          permissions = """
+              <uses-permission android:name="android.permission.INTERNET"/>
+              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
+
+              <queries>
+                  <intent>
+                      <action android:name="android.intent.action.VIEW" />
+                      <data android:scheme="https" />
+                  </intent>
+              </queries>
+          """
+          if 'android.permission.INTERNET' not in content:
+              content = re.sub(r'(<manifest[^>]*>)', r'\g<1>' + permissions, content, count=1)
+
+          with open(manifest_path, "w", encoding="utf-8") as f:
+              f.write(content)
+
+          print("AndroidManifest.xml configured successfully.")
+          EOF
+
       - name: Install Dependencies
         run: flutter pub get
 
       - name: Build Release APK
         run: flutter build apk --release
 
-      - name: Rename APK
+      - name: Prepare APK File
         run: |
-          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/SunoDownloader-release.apk
+          mkdir -p output
+          cp build/app/outputs/flutter-apk/app-release.apk output/SunoDownloader-release.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: SunoDownloader-APK
-          path: build/app/outputs/flutter-apk/SunoDownloader-release.apk
+          path: output/SunoDownloader-release.apk
           retention-days: 30
